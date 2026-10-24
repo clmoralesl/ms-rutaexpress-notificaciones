@@ -1,15 +1,20 @@
 package cl.rutaexpress.notificaciones.config;
 
+import cl.rutaexpress.notificaciones.dto.MensajeEnvelope;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 public class RabbitMQConfig {
@@ -36,7 +41,15 @@ public class RabbitMQConfig {
 
     @Bean
     public MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter(construirObjectMapper());
+        Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(construirObjectMapper());
+        DefaultJackson2JavaTypeMapper typeMapper = new DefaultJackson2JavaTypeMapper();
+        typeMapper.setTrustedPackages("*");
+        Map<String, Class<?>> idClassMapping = new HashMap<>();
+        idClassMapping.put("cl.rutaexpress.envios.dto.MensajeEnvelope", MensajeEnvelope.class);
+        idClassMapping.put("cl.rutaexpress.notificaciones.dto.MensajeEnvelope", MensajeEnvelope.class);
+        typeMapper.setIdClassMapping(idClassMapping);
+        converter.setJavaTypeMapper(typeMapper);
+        return converter;
     }
 
     @Bean
