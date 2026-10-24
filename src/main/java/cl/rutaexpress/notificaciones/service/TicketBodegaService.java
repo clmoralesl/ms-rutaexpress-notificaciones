@@ -38,6 +38,18 @@ public class TicketBodegaService {
         ticketJson.put("destinatario", datos.rutDestinatario());
         ticketJson.put("origen", datos.direccionOrigen());
         ticketJson.put("destino", datos.direccionDestino());
+        if (datos.comunaDestino() != null) {
+            ticketJson.put("comunaDestino", datos.comunaDestino());
+        }
+        if (datos.regionDestino() != null) {
+            ticketJson.put("regionDestino", datos.regionDestino());
+        }
+        if (datos.comunaOrigen() != null) {
+            ticketJson.put("comunaOrigen", datos.comunaOrigen());
+        }
+        if (datos.regionOrigen() != null) {
+            ticketJson.put("regionOrigen", datos.regionOrigen());
+        }
         ticketJson.put("pesoKg", datos.pesoKg());
         ticketJson.put("fechaEmision", datos.fechaEmision());
         ticketJson.put("instruccionesBodega", datos.instrucciones());

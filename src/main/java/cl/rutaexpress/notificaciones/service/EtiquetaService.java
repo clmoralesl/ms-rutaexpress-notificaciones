@@ -179,7 +179,16 @@ public class EtiquetaService {
             cellRemitente.setPadding(6f);
             cellRemitente.addElement(new Paragraph("REMITENTE (ORIGEN):", fontLabel));
             cellRemitente.addElement(new Paragraph("RUT: " + (datos.rutRemitente() != null ? datos.rutRemitente() : "No especificado"), fontTexto));
-            cellRemitente.addElement(new Paragraph("DIRECCION ORIGEN: " + (datos.direccionOrigen() != null ? datos.direccionOrigen() : "Centro de Despacho Principal"), fontTexto));
+            if (datos.calleOrigen() != null && !datos.calleOrigen().isBlank()) {
+                String lineaCalle = "CALLE: " + datos.calleOrigen() + " " + (datos.numeroOrigen() != null ? datos.numeroOrigen() : "")
+                        + (datos.complementoOrigen() != null && !datos.complementoOrigen().isBlank() ? " - " + datos.complementoOrigen() : "");
+                cellRemitente.addElement(new Paragraph(lineaCalle, fontTexto));
+                String lineaGeo = "COMUNA / REGION: " + (datos.comunaOrigen() != null ? datos.comunaOrigen() : "")
+                        + (datos.regionOrigen() != null ? " (" + datos.regionOrigen() + ")" : "");
+                cellRemitente.addElement(new Paragraph(lineaGeo, fontTexto));
+            } else {
+                cellRemitente.addElement(new Paragraph("DIRECCION ORIGEN: " + (datos.direccionOrigen() != null ? datos.direccionOrigen() : "Centro de Despacho Principal"), fontTexto));
+            }
             tablaRemitente.addCell(cellRemitente);
             document.add(tablaRemitente);
 
@@ -195,7 +204,16 @@ public class EtiquetaService {
             cellDestinatario.setPadding(6f);
             cellDestinatario.addElement(new Paragraph("DESTINATARIO (ENTREGA FINAL):", FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.BLACK)));
             cellDestinatario.addElement(new Paragraph("RUT: " + (datos.rutDestinatario() != null ? datos.rutDestinatario() : "No especificado"), fontLabel));
-            cellDestinatario.addElement(new Paragraph("DIRECCION DESTINO: " + (datos.direccionDestino() != null ? datos.direccionDestino() : "Direccion no especificada"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.BLACK)));
+            if (datos.calleDestino() != null && !datos.calleDestino().isBlank()) {
+                String lineaCalle = "DIRECCION: " + datos.calleDestino() + " " + (datos.numeroDestino() != null ? datos.numeroDestino() : "")
+                        + (datos.complementoDestino() != null && !datos.complementoDestino().isBlank() ? " - " + datos.complementoDestino() : "");
+                cellDestinatario.addElement(new Paragraph(lineaCalle, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.BLACK)));
+                String lineaGeo = "COMUNA / REGION: " + (datos.comunaDestino() != null ? datos.comunaDestino() : "")
+                        + (datos.regionDestino() != null ? " (" + datos.regionDestino() + ")" : "");
+                cellDestinatario.addElement(new Paragraph(lineaGeo, fontTexto));
+            } else {
+                cellDestinatario.addElement(new Paragraph("DIRECCION DESTINO: " + (datos.direccionDestino() != null ? datos.direccionDestino() : "Direccion no especificada"), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.BLACK)));
+            }
             tablaDestinatario.addCell(cellDestinatario);
             document.add(tablaDestinatario);
 
