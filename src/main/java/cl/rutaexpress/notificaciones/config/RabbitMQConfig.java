@@ -1,5 +1,6 @@
 package cl.rutaexpress.notificaciones.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.amqp.core.AcknowledgeMode;
@@ -26,11 +27,16 @@ public class RabbitMQConfig {
     public static final String EXCHANGE_TOPIC = "cmd.topic";
     public static final String EXCHANGE_DEAD_LETTER = "cmd.dead.dlx";
 
-    @Bean
-    public MessageConverter jsonMessageConverter() {
+    public static ObjectMapper construirObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
-        return new Jackson2JsonMessageConverter(mapper);
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        return mapper;
+    }
+
+    @Bean
+    public MessageConverter jsonMessageConverter() {
+        return new Jackson2JsonMessageConverter(construirObjectMapper());
     }
 
     @Bean
