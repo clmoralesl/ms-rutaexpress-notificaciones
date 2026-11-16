@@ -32,6 +32,21 @@ public class RabbitMQConfig {
     public static final String EXCHANGE_TOPIC = "cmd.topic";
     public static final String EXCHANGE_DEAD_LETTER = "cmd.dead.dlx";
 
+    // Claves de enrutamiento directas (cmd.direct)
+    public static final String ROUTING_KEY_EMAIL = "email.send";
+    public static final String ROUTING_KEY_WAREHOUSE = "warehouse.ticket";
+    public static final String ROUTING_KEY_LABEL = "label.gen";
+
+    // Patrones de suscripcion (cmd.topic)
+    public static final String PATRON_EMAIL = "email.*";
+    public static final String PATRON_WAREHOUSE = "warehouse.#";
+    public static final String PATRON_LABEL = "label.*";
+
+    // Claves de dead letter (cmd.dead.dlx)
+    public static final String DEAD_LETTER_KEY_EMAIL = "email.dead";
+    public static final String DEAD_LETTER_KEY_WAREHOUSE = "warehouse.dead";
+    public static final String DEAD_LETTER_KEY_LABEL = "label.dead";
+
     public static ObjectMapper construirObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
