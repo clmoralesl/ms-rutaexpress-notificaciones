@@ -11,6 +11,9 @@ public record EstadisticasResponse(
         long etiquetasFallidas,
         long totalMensajesProcesados,
         long totalMensajesEnviadosADLQ,
+        ReintentosProgramados reintentosProgramados,
         LocalDateTime timestamp
 ) {
+    public record ReintentosProgramados(long email, long bodega, long etiqueta) {
+    }
 }

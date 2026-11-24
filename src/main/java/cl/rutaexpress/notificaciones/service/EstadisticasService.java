@@ -1,63 +1,70 @@
 package cl.rutaexpress.notificaciones.service;
 
+import cl.rutaexpress.notificaciones.consumer.TipoMensaje;
 import cl.rutaexpress.notificaciones.dto.EstadisticasResponse;
+import cl.rutaexpress.notificaciones.dto.EstadisticasResponse.ReintentosProgramados;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class EstadisticasService {
 
-    private final AtomicLong emailsProcesados = new AtomicLong(0);
-    private final AtomicLong emailsFallidos = new AtomicLong(0);
-
-    private final AtomicLong ticketsBodegaProcesados = new AtomicLong(0);
-    private final AtomicLong ticketsBodegaFallidos = new AtomicLong(0);
-
-    private final AtomicLong etiquetasProcesadas = new AtomicLong(0);
-    private final AtomicLong etiquetasFallidas = new AtomicLong(0);
-
+    private final Map<TipoMensaje, AtomicLong> procesados = new EnumMap<>(TipoMensaje.class);
+    private final Map<TipoMensaje, AtomicLong> fallidos = new EnumMap<>(TipoMensaje.class);
+    private final Map<TipoMensaje, AtomicLong> reintentos = new EnumMap<>(TipoMensaje.class);
     private final AtomicLong mensajesEnviadosADLQ = new AtomicLong(0);
 
-    public void registrarEmailProcesado() {
-        emailsProcesados.incrementAndGet();
+    public EstadisticasService() {
+        for (TipoMensaje tipo : TipoMensaje.values()) {
+            procesados.put(tipo, new AtomicLong(0));
+            fallidos.put(tipo, new AtomicLong(0));
+            reintentos.put(tipo, new AtomicLong(0));
+        }
     }
 
-    public void registrarEmailFallido() {
-        emailsFallidos.incrementAndGet();
+    public void registrarProcesado(TipoMensaje tipo) {
+        procesados.get(tipo).incrementAndGet();
+    }
+
+    public void registrarFallido(TipoMensaje tipo) {
+        fallidos.get(tipo).incrementAndGet();
         mensajesEnviadosADLQ.incrementAndGet();
     }
 
-    public void registrarTicketBodegaProcesado() {
-        ticketsBodegaProcesados.incrementAndGet();
-    }
-
-    public void registrarTicketBodegaFallido() {
-        ticketsBodegaFallidos.incrementAndGet();
-        mensajesEnviadosADLQ.incrementAndGet();
-    }
-
-    public void registrarEtiquetaProcesada() {
-        etiquetasProcesadas.incrementAndGet();
-    }
-
-    public void registrarEtiquetaFallida() {
-        etiquetasFallidas.incrementAndGet();
-        mensajesEnviadosADLQ.incrementAndGet();
+    public void registrarReintentoProgramado(TipoMensaje tipo) {
+        reintentos.get(tipo).incrementAndGet();
     }
 
     public EstadisticasResponse obtenerEstadisticas() {
-        long totalProcesados = emailsProcesados.get() + ticketsBodegaProcesados.get() + etiquetasProcesadas.get();
+        long ep = procesados.get(TipoMensaje.EMAIL).get();
+        long ef = fallidos.get(TipoMensaje.EMAIL).get();
+        long bp = procesados.get(TipoMensaje.BODEGA).get();
+        long bf = fallidos.get(TipoMensaje.BODEGA).get();
+        long etp = procesados.get(TipoMensaje.ETIQUETA).get();
+        long etf = fallidos.get(TipoMensaje.ETIQUETA).get();
+
+        long totalProcesados = ep + bp + etp;
+
+        ReintentosProgramados reintentosProgramados = new ReintentosProgramados(
+                reintentos.get(TipoMensaje.EMAIL).get(),
+                reintentos.get(TipoMensaje.BODEGA).get(),
+                reintentos.get(TipoMensaje.ETIQUETA).get()
+        );
+
         return new EstadisticasResponse(
-                emailsProcesados.get(),
-                emailsFallidos.get(),
-                ticketsBodegaProcesados.get(),
-                ticketsBodegaFallidos.get(),
-                etiquetasProcesadas.get(),
-                etiquetasFallidas.get(),
+                ep,
+                ef,
+                bp,
+                bf,
+                etp,
+                etf,
                 totalProcesados,
                 mensajesEnviadosADLQ.get(),
+                reintentosProgramados,
                 LocalDateTime.now()
         );
     }

@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Topologia de RabbitMQ que consume este servicio: 3 exchanges, 6 colas y 15 bindings.
+ * Topologia de RabbitMQ que consume este servicio: 3 exchanges, 9 colas y 15 bindings.
  * Debe coincidir con infra/mq/definitions.json y con infra/aws-ec2/scripts/bootstrap-mq.sh.
  */
 @Configuration
@@ -55,6 +55,11 @@ public class TopologiaRabbitMQConfig {
     }
 
     @Bean
+    public Queue colaCorreoEspera() {
+        return colaEspera(RabbitMQConfig.QUEUE_EMAIL_RETRY, RabbitMQConfig.ROUTING_KEY_EMAIL);
+    }
+
+    @Bean
     public Binding enlaceCorreoDirecto() {
         return BindingBuilder.bind(colaCorreo()).to(exchangeDirecto()).with(RabbitMQConfig.ROUTING_KEY_EMAIL);
     }
@@ -89,6 +94,11 @@ public class TopologiaRabbitMQConfig {
     @Bean
     public Queue colaBodegaDlq() {
         return colaDlq(RabbitMQConfig.QUEUE_WAREHOUSE_DLQ);
+    }
+
+    @Bean
+    public Queue colaBodegaEspera() {
+        return colaEspera(RabbitMQConfig.QUEUE_WAREHOUSE_RETRY, RabbitMQConfig.ROUTING_KEY_WAREHOUSE);
     }
 
     @Bean
@@ -129,6 +139,11 @@ public class TopologiaRabbitMQConfig {
     }
 
     @Bean
+    public Queue colaEtiquetaEspera() {
+        return colaEspera(RabbitMQConfig.QUEUE_LABEL_RETRY, RabbitMQConfig.ROUTING_KEY_LABEL);
+    }
+
+    @Bean
     public Binding enlaceEtiquetaDirecto() {
         return BindingBuilder.bind(colaEtiqueta()).to(exchangeDirecto()).with(RabbitMQConfig.ROUTING_KEY_LABEL);
     }
@@ -166,6 +181,14 @@ public class TopologiaRabbitMQConfig {
         return QueueBuilder.durable(nombre)
                 .ttl(propiedades.colaDlq().ttlMs())
                 .maxLength(propiedades.colaDlq().largoMaximo())
+                .build();
+    }
+
+    private Queue colaEspera(String nombre, String claveOriginal) {
+        return QueueBuilder.durable(nombre)
+                .ttl(propiedades.reintentos().esperaMs())
+                .deadLetterExchange(RabbitMQConfig.EXCHANGE_DIRECT)
+                .deadLetterRoutingKey(claveOriginal)
                 .build();
     }
 }

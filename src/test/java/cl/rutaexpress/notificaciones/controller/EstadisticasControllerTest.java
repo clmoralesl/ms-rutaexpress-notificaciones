@@ -1,6 +1,7 @@
 package cl.rutaexpress.notificaciones.controller;
 
 import cl.rutaexpress.notificaciones.dto.EstadisticasResponse;
+import cl.rutaexpress.notificaciones.dto.EstadisticasResponse.ReintentosProgramados;
 import cl.rutaexpress.notificaciones.service.EstadisticasService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,9 @@ class EstadisticasControllerTest {
     @DisplayName("GET /api/notificaciones/estadisticas retorna metricas de colas y DLQ")
     void testEstadisticasEndpoint() throws Exception {
         EstadisticasResponse stats = new EstadisticasResponse(
-                10L, 1L, 8L, 0L, 5L, 0L, 23L, 1L, LocalDateTime.now()
+                10L, 1L, 8L, 0L, 5L, 0L, 23L, 1L,
+                new ReintentosProgramados(4L, 0L, 2L),
+                LocalDateTime.now()
         );
 
         when(estadisticasService.obtenerEstadisticas()).thenReturn(stats);
@@ -42,6 +45,8 @@ class EstadisticasControllerTest {
                 .andExpect(jsonPath("$.emailsFallidos").value(1))
                 .andExpect(jsonPath("$.ticketsBodegaProcesados").value(8))
                 .andExpect(jsonPath("$.totalMensajesProcesados").value(23))
-                .andExpect(jsonPath("$.totalMensajesEnviadosADLQ").value(1));
+                .andExpect(jsonPath("$.totalMensajesEnviadosADLQ").value(1))
+                .andExpect(jsonPath("$.reintentosProgramados.email").value(4))
+                .andExpect(jsonPath("$.reintentosProgramados.etiqueta").value(2));
     }
 }

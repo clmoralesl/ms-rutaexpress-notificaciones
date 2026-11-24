@@ -4,12 +4,15 @@ import cl.rutaexpress.notificaciones.dto.MensajeEnvelope;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.boot.autoconfigure.amqp.RabbitTemplateCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,14 +22,19 @@ import java.util.Map;
 @Configuration
 public class RabbitMQConfig {
 
+    private static final Logger log = LoggerFactory.getLogger(RabbitMQConfig.class);
+
     public static final String QUEUE_EMAIL = "q.cmd.email";
     public static final String QUEUE_EMAIL_DLQ = "q.cmd.email.dlq";
+    public static final String QUEUE_EMAIL_RETRY = "q.cmd.email.retry";
 
     public static final String QUEUE_WAREHOUSE = "q.cmd.warehouse";
     public static final String QUEUE_WAREHOUSE_DLQ = "q.cmd.warehouse.dlq";
+    public static final String QUEUE_WAREHOUSE_RETRY = "q.cmd.warehouse.retry";
 
     public static final String QUEUE_LABEL = "q.cmd.label";
     public static final String QUEUE_LABEL_DLQ = "q.cmd.label.dlq";
+    public static final String QUEUE_LABEL_RETRY = "q.cmd.label.retry";
 
     public static final String EXCHANGE_DIRECT = "cmd.direct";
     public static final String EXCHANGE_TOPIC = "cmd.topic";
@@ -52,6 +60,16 @@ public class RabbitMQConfig {
         mapper.registerModule(new JavaTimeModule());
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         return mapper;
+    }
+
+    @Bean
+    public RabbitTemplateCustomizer plantillaConDevoluciones() {
+        return plantilla -> {
+            plantilla.setMandatory(true);
+            plantilla.setReturnsCallback(devuelto -> log.warn(
+                    "Mensaje no enrutable devuelto por el broker: destino={}, codigo={}",
+                    devuelto.getRoutingKey(), devuelto.getReplyCode()));
+        };
     }
 
     @Bean
