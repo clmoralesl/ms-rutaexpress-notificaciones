@@ -30,9 +30,9 @@ class TopologiaRabbitMQIntegracionTest {
     void redeclararSobreTopologiaExistenteNoFalla() {
         assertDoesNotThrow(rabbitAdmin::initialize);
         List<String> colas = List.of(
-                "q.cmd.email", "q.cmd.email.dlq",
-                "q.cmd.warehouse", "q.cmd.warehouse.dlq",
-                "q.cmd.label", "q.cmd.label.dlq");
+                "q.cmd.email", "q.cmd.email.dlq", "q.cmd.email.retry",
+                "q.cmd.warehouse", "q.cmd.warehouse.dlq", "q.cmd.warehouse.retry",
+                "q.cmd.label", "q.cmd.label.dlq", "q.cmd.label.retry");
         for (String nombre : colas) {
             assertNotNull(rabbitAdmin.getQueueInfo(nombre), nombre);
         }

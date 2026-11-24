@@ -24,6 +24,9 @@ class TopologiaRabbitMQConfigTest {
     private static final String LARGO_PRINCIPAL = "rutaexpress.mensajeria.cola-principal.largo-maximo=10000";
     private static final String TTL_DLQ = "rutaexpress.mensajeria.cola-dlq.ttl-ms=604800000";
     private static final String LARGO_DLQ = "rutaexpress.mensajeria.cola-dlq.largo-maximo=50000";
+    private static final String MAXIMO = "rutaexpress.mensajeria.reintentos.maximo=3";
+    private static final String ESPERA = "rutaexpress.mensajeria.reintentos.espera-ms=10000";
+    private static final String CONFIRMACION = "rutaexpress.mensajeria.reintentos.tiempo-confirmacion-ms=5000";
 
     private ApplicationContextRunner runner(String... propiedades) {
         return new ApplicationContextRunner()
@@ -33,7 +36,7 @@ class TopologiaRabbitMQConfigTest {
     }
 
     private ApplicationContextRunner runnerValido() {
-        return runner(TTL_PRINCIPAL, LARGO_PRINCIPAL, TTL_DLQ, LARGO_DLQ);
+        return runner(TTL_PRINCIPAL, LARGO_PRINCIPAL, TTL_DLQ, LARGO_DLQ, MAXIMO, ESPERA, CONFIRMACION);
     }
 
     @Test
@@ -102,7 +105,7 @@ class TopologiaRabbitMQConfigTest {
     }
 
     @Test
-    @DisplayName("C3: 15 bindings iguales a infra/mq/definitions.json y 6 colas")
+    @DisplayName("C3: 15 bindings iguales a infra/mq/definitions.json y 9 colas")
     void bindingsCoincidenConDefinitions() {
         Set<String> esperados = Set.of(
                 "cmd.direct|q.cmd.email|email.send",
@@ -126,7 +129,7 @@ class TopologiaRabbitMQConfigTest {
                     .collect(Collectors.toSet());
             assertEquals(15, ctx.getBeansOfType(Binding.class).size());
             assertEquals(esperados, reales);
-            assertEquals(6, ctx.getBeansOfType(Queue.class).size());
+            assertEquals(9, ctx.getBeansOfType(Queue.class).size());
         });
     }
 
@@ -135,7 +138,7 @@ class TopologiaRabbitMQConfigTest {
     void ttlNoPositivoImpideArranque() {
         for (String valor : new String[] {"0", "-1"}) {
             runner("rutaexpress.mensajeria.cola-principal.ttl-ms=" + valor,
-                    LARGO_PRINCIPAL, TTL_DLQ, LARGO_DLQ)
+                    LARGO_PRINCIPAL, TTL_DLQ, LARGO_DLQ, MAXIMO, ESPERA, CONFIRMACION)
                     .run(ctx -> assertNotNull(ctx.getStartupFailure(), "ttl=" + valor));
         }
     }
@@ -143,7 +146,7 @@ class TopologiaRabbitMQConfigTest {
     @Test
     @DisplayName("C5: propiedad ausente impide el arranque")
     void propiedadAusenteImpideArranque() {
-        runner(TTL_PRINCIPAL, LARGO_PRINCIPAL, TTL_DLQ)
+        runner(TTL_PRINCIPAL, LARGO_PRINCIPAL, TTL_DLQ, MAXIMO, ESPERA, CONFIRMACION)
                 .run(ctx -> assertNotNull(ctx.getStartupFailure()));
     }
 
@@ -151,7 +154,45 @@ class TopologiaRabbitMQConfigTest {
     @DisplayName("C6: valor mayor que Integer.MAX_VALUE impide el arranque")
     void valorFueraDeRangoImpideArranque() {
         runner("rutaexpress.mensajeria.cola-principal.ttl-ms=3000000000",
-                LARGO_PRINCIPAL, TTL_DLQ, LARGO_DLQ)
+                LARGO_PRINCIPAL, TTL_DLQ, LARGO_DLQ, MAXIMO, ESPERA, CONFIRMACION)
                 .run(ctx -> assertNotNull(ctx.getStartupFailure()));
+    }
+
+    @Test
+    @DisplayName("C9: colas de espera con DLX hacia direct, DLK original, TTL y sin largo maximo")
+    void colasEsperaTienenTtlYDlxHaciaDirecto() {
+        runnerValido().run(ctx -> {
+            Map<String, String> claves = Map.of(
+                    "q.cmd.email.retry", "email.send",
+                    "q.cmd.warehouse.retry", "warehouse.ticket",
+                    "q.cmd.label.retry", "label.gen");
+            Map<String, Queue> colas = ctx.getBeansOfType(Queue.class).values().stream()
+                    .collect(Collectors.toMap(Queue::getName, q -> q));
+            claves.forEach((nombre, clave) -> {
+                Queue q = colas.get(nombre);
+                assertNotNull(q, nombre);
+                assertTrue(q.isDurable());
+                assertFalse(q.isAutoDelete());
+                assertFalse(q.isExclusive());
+                Map<String, Object> args = q.getArguments();
+                assertEquals(3, args.size(), nombre);
+                assertEquals("cmd.direct", args.get("x-dead-letter-exchange"));
+                assertEquals(clave, args.get("x-dead-letter-routing-key"));
+                assertEquals(10000L, ((Number) args.get("x-message-ttl")).longValue());
+            });
+        });
+    }
+
+    @Test
+    @DisplayName("C10: reintentos invalidos o ausentes impiden el arranque")
+    void reintentosInvalidosImpidenArranque() {
+        for (String maximoInvalido : new String[] {"11", "-1"}) {
+            runner(TTL_PRINCIPAL, LARGO_PRINCIPAL, TTL_DLQ, LARGO_DLQ,
+                    "rutaexpress.mensajeria.reintentos.maximo=" + maximoInvalido, ESPERA, CONFIRMACION)
+                    .run(ctx -> assertNotNull(ctx.getStartupFailure(), "maximo=" + maximoInvalido));
+        }
+        // Ausencia de espera-ms
+        runner(TTL_PRINCIPAL, LARGO_PRINCIPAL, TTL_DLQ, LARGO_DLQ, MAXIMO, CONFIRMACION)
+                .run(ctx -> assertNotNull(ctx.getStartupFailure(), "ausencia de espera-ms"));
     }
 }
